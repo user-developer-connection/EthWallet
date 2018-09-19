@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:layout_width="match_parent"
+	android:layout_height="wrap_content"
+	android:orientation="horizontal"
+	android:padding="8dp">
+
+	<android.support.v7.widget.CardView
+		android:layout_width="match_parent"
+		android:layout_height="140dp"
+		app:cardBackgroundColor="@color/white"
+		app:cardElevation="4dp"
+		app:cardCornerRadius="4dp">
+
+		<RelativeLayout
+			android:layout_width="match_parent"
+			android:layout_height="match_parent">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_marginBottom="4dp"
+				android:layout_marginLeft="12dp"
+				android:layout_marginRight="12dp"
+				android:layout_marginTop="10dp"
+				android:orientation="horizontal">
+
+				<ImageView
+					android:id="@+id/walletIcon"
+					android:layout_width="50dp"
+					android:layout_height="50dp"
+					android:layout_marginRight="10dp"
+					android:src="@mipmap/ic_launcher" />
+
+				<LinearLayout
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:orientation="vertical">
+
+					<TextView
+						android:id="@+id/walletName"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:gravity="center_vertical"
+						android:text="MyWallet"
+						android:textColor="@color/colorPrimaryDark"
+						android:textSize="20sp"
+						android:textStyle="bold" />
+
+					<TextView
+						android:id="@+id/walletAddress"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:layout_marginTop="6dp"
+						android:gravity="center_vertical"
+						android:text="0xABCDEFGHIJKLMNOPQRSTUVWXYZ"
+						android:textSize="12sp" />
+				</LinearLayout>
+			</LinearLayout>
+
+			<View
+				android:layout_width="match_parent"
+				android:layout_height="1dp"
+				android:layout_above="@+id/bottomPart"
+				android:background="#7aa1a1a1" />
+
+			<RelativeLayout
+				android:id="@+id/bottomPart"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:layout_alignParentBottom="true">
+
+				<RadioButton
+					android:id="@+id/toggleDefaultButton"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginLeft="10dp"
+					android:layout_marginTop="10dp"
+					android:layout_marginBottom="10dp"/>
+
+				<LinearLayout
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_alignParentRight="true"
+					android:layout_centerInParent="true"
+					android:orientation="horizontal">
+
+					<TextView
+						android:id="@+id/ethAvailable"
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_marginEnd="3dp"
+						android:layout_marginRight="3dp"
+						android:text="0"
+						android:textSize="30sp" />
+
+					<TextView
+						android:layout_width="wrap_content"
+						android:layout_height="wrap_content"
+						android:layout_marginRight="10dp"
+						android:text="Ξ"
+						android:textSize="16sp" />
+				</LinearLayout>
+			</RelativeLayout>
+		</RelativeLayout>
+	</android.support.v7.widget.CardView>
+
+</android.support.constraint.ConstraintLayout>

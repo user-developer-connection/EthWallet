@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
+    <item
+        android:id="@+id/action_import"
+        android:icon="@mipmap/ic_import_export_white_2x"
+        android:title="@string/menu_add_wallet"
+        app:showAsAction="always" />
+</menu>

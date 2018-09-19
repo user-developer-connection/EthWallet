@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">bcwallet</string>
+    <string name="activity_title_payment">Payment</string>
+    <string name="activity_title_wallet_management">Wallets</string>
+    <string name="activity_title_import_wallet">Import</string>
+    <string name="keystore">Keystore</string>
+    <string name="private_key">Private key</string>
+    <string name="error_field_required">This field is required</string>
+    <string name="action_import">Import</string>
+    <string name="hint_keystore">Keystore *</string>
+    <string name="hint_password">Password *</string>
+    <string name="hint_private_key">Private Key *</string>
+    <string name="suggestion_field_required">* Field required</string>
+    <string name="payment_app_name">Game Name</string>
+    <string name="payment_title_price">Price</string>
+    <string name="payment_text_price">-- ETH</string>
+    <string name="payment_title_account">Account</string>
+    <string name="payment_title_prop_name">Prop Name</string>
+    <string name="payment_title_gas_price">Gas Price</string>
+    <string name="payment_title_gas_limit">Gas Limit</string>
+    <string name="payment_text_less_gwei">Cheaper</string>
+    <string name="payment_text_more_gwei">Faster</string>
+    <string name="payment_title_total_cost">Total Cost</string>
+    <string name="payment_text_no_wallet">No Wallet</string>
+    <string name="payment_confirm">Pay</string>
+    <string name="payment_placeholder">-</string>
+    <string name="menu_add_wallet">Add Wallet</string>
+</resources>

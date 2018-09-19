@@ -1,0 +1,39 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.ajoylab.blockchain.wallet">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme.NoActionBar">
+
+        <activity
+            android:name="com.ajoylab.blockchain.wallet.ui.BCImportWalletActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="sensor"
+            android:configChanges="keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:label="@string/activity_title_import_wallet"/>
+
+        <activity
+            android:name="com.ajoylab.blockchain.wallet.ui.BCPaymentActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="sensor"
+            android:configChanges="keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:label="@string/activity_title_payment" />
+
+        <activity
+            android:name="com.ajoylab.blockchain.wallet.ui.BCWalletManagementActivity"
+            android:launchMode="singleTop"
+            android:screenOrientation="sensor"
+            android:configChanges="keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:label="@string/activity_title_wallet_management"/>
+
+    </application>
+</manifest>
