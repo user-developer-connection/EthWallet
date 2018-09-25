@@ -1,9 +1,11 @@
 package com.ajoylab.blockchain.wallet.ui;
 
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
@@ -35,39 +37,11 @@ import com.ajoylab.blockchain.wallet.viewmodel.BCWalletManagementViewModel;
 
 public class BCWalletManagementActivity extends BCBaseActivity implements BCWalletManagementAdapter.OnSetDefaultWalletListener
 {
-    private static final String TAG = "###BCWalletManage";
+    private static final String TAG = "###BCWalletManageACT";
 
     private BCWalletManagementAdapter mAdapter;
     private BCWalletManagementViewModel mViewModel;
     private TextView mNoWalletText;
-
-    /*
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return (View) inflater.inflate(R.layout.fragment_payment_wallet, container, false);
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        mNoWalletText = view.findViewById(R.id.noWalletText);
-
-        mAdapter = new BCWalletManagementAdapter(this);
-        SwipeRefreshLayout refreshLayout = view.findViewById(R.id.refresh_layout);
-
-        RecyclerView list = view.findViewById(R.id.list);
-        list.setLayoutManager(new LinearLayoutManager(getActivity()));
-        list.setAdapter(mAdapter);
-
-        mViewModel = ViewModelProviders.of(getActivity()).get(BCWalletManagementViewModel.class);
-        mViewModel.getWalletList();
-
-        mViewModel.walletList().observe(this, this::onGetWalletList);
-        refreshLayout.setOnRefreshListener(mViewModel::getWalletList);
-    }
-    */
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -88,16 +62,23 @@ public class BCWalletManagementActivity extends BCBaseActivity implements BCWall
         list.setAdapter(mAdapter);
 
         mViewModel = ViewModelProviders.of(this).get(BCWalletManagementViewModel.class);
-        mViewModel.getWalletList();
-
         mViewModel.walletList().observe(this, this::onGetWalletList);
-        refreshLayout.setOnRefreshListener(mViewModel::getWalletList);
+        mViewModel.defaultWallet().observe(this, this::onGetDefaultWallet);
+        refreshLayout.setOnRefreshListener(mViewModel::refreshWalletAccounts);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        Log.d(TAG, "onResume 111");
+        mViewModel.onResume();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_import, menu);
-        getMenuInflater().inflate(R.menu.menu_add, menu);
+        //getMenuInflater().inflate(R.menu.menu_add, menu);
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -105,10 +86,13 @@ public class BCWalletManagementActivity extends BCBaseActivity implements BCWall
     public boolean onOptionsItemSelected(MenuItem item) {
 
         int i = item.getItemId();
+        Log.d(TAG, "onOptionsItemSelected 000 id: " + i);
 
-        if (R.menu.menu_import == i) {
+        if (R.id.action_import == i) {
             Log.d(TAG, "onOptionsItemSelected 111");
-        } else if (R.menu.menu_add == i) {
+            Intent intent = new Intent(this, BCImportWalletActivity.class);
+            startActivityForResult(intent, BCConstants.REQUEST_CODE_IMPORT_WALLET);
+        } else if (R.id.action_add == i) {
             Log.d(TAG, "onOptionsItemSelected 222");
         } else if (android.R.id.home == i) {
             Log.d(TAG, "onOptionsItemSelected 333");
@@ -124,13 +108,32 @@ public class BCWalletManagementActivity extends BCBaseActivity implements BCWall
     public void onSetDefault(BCWalletData wallet) {
         Log.d(TAG, "onSetDefault 111");
         mViewModel.setDefaultWallet(wallet);
-        mAdapter.setDefaultWallet(wallet);
+        //mAdapter.setDefaultWallet(wallet);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        Log.d(TAG, "onActivityResult 111 requestCode: " + requestCode + " resultCode: " + resultCode);
+
+        if (BCConstants.REQUEST_CODE_IMPORT_WALLET == requestCode) {
+
+            Log.d(TAG, "onActivityResult 222");
+            //showToolbar();
+            if (resultCode == RESULT_OK) {
+                mViewModel.refreshWalletAccounts();
+                //Snackbar.make(systemView, getString(R.string.toast_message_wallet_imported), Snackbar.LENGTH_SHORT)
+                //        .show();
+            }
+        }
+    }
+
+
     private void onGetWalletList(BCWalletData[] wallets) {
-        Log.d(TAG, "onGetWalletList 111");
+        Log.d(TAG, "onGetWalletList 111 count: " + wallets.length);
         if (wallets == null || wallets.length == 0) {
-            Log.d(TAG, "onCreate 222");
+            Log.d(TAG, "onGetWalletList 222");
             /*
             dissableDisplayHomeAsUp();
             AddWalletView addWalletView = new AddWalletView(this, R.layout.layout_empty_add_account);
@@ -142,11 +145,16 @@ public class BCWalletManagementActivity extends BCBaseActivity implements BCWall
             */
             mNoWalletText.setVisibility(View.VISIBLE);
         } else {
-            Log.d(TAG, "onCreate 333");
+            Log.d(TAG, "onGetWalletList 333");
             //enableDisplayHomeAsUp();
             mNoWalletText.setVisibility(View.GONE);
             mAdapter.setWallets(wallets);
         }
         //invalidateOptionsMenu();
+    }
+
+    private void onGetDefaultWallet(BCWalletData wallet) {
+        Log.d(TAG, "onGetDefaultWallet 111 addr: " + wallet.getAddress());
+        mAdapter.setDefaultWallet(wallet);
     }
 }

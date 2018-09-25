@@ -11,9 +11,10 @@ public class BCConstants
 
     public static final String SYMBOL_ETH = "ETH";
 
+    public static final int REQUEST_CODE_IMPORT_WALLET = 1001;
+
     public static final long DEFAULT_GAS_PRICE = 20000000000L;
     public static final long DEFAULT_GAS_LIMIT = 90000L;
-    public static final String DEFAULT_GAS_LIMIT_FOR_TOKENS = "144000";
     public static final long GAS_LIMIT_MIN = 21000L;
     public static final long GAS_LIMIT_MAX = 300000L;
     public static final long GAS_PRICE_MIN = 1000000000L; // 1 Gwei

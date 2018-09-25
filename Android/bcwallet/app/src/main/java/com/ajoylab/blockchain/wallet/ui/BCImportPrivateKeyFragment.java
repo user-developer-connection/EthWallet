@@ -6,6 +6,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,7 +21,9 @@ import com.ajoylab.blockchain.wallet.viewmodel.BCImportWalletViewModel;
 
 public class BCImportPrivateKeyFragment extends Fragment implements View.OnClickListener
 {
-    private EditText privateKey;
+    private static final String TAG = "###BCImportPrivateKeyFR";
+
+    private EditText mPrivateKey;
 
     @Nullable
     @Override
@@ -32,16 +35,17 @@ public class BCImportPrivateKeyFragment extends Fragment implements View.OnClick
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        privateKey = view.findViewById(R.id.private_key);
+        mPrivateKey = view.findViewById(R.id.private_key);
         view.findViewById(R.id.import_action).setOnClickListener(this);
     }
 
     @Override
     public void onClick(View view) {
-        privateKey.setError(null);
-        String key = privateKey.getText().toString();
+        Log.d(TAG, "onClick 111");
+        mPrivateKey.setError(null);
+        String key = mPrivateKey.getText().toString();
         if (TextUtils.isEmpty(key) || key.length() != 64) {
-            privateKey.setError(getString(R.string.error_field_required));
+            mPrivateKey.setError(getString(R.string.error_field_required));
         } else {
             BCImportWalletViewModel model = ViewModelProviders.of(getActivity()).get(BCImportWalletViewModel.class);
             model.OnImportPrivateKeyClicked(key);

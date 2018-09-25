@@ -11,6 +11,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 
 import com.ajoylab.blockchain.wallet.R;
 import com.ajoylab.blockchain.wallet.model.BCViewPagerData;
@@ -24,7 +25,9 @@ import java.util.List;
  * Created by liuya on 2018/1/17.
  */
 
-public class BCImportWalletActivity extends AppCompatActivity {
+public class BCImportWalletActivity extends BCBaseActivity {
+
+    private static final String TAG = "###BCImportActivity";
 
     private static final int KEYSTORE_PAGE_INDEX = 0;
     private static final int PRIVATEKEY_PAGE_INDEX = 1;
@@ -38,15 +41,7 @@ public class BCImportWalletActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_import_wallet);
-
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        toolbar.setTitle(getTitle());
-
-        ActionBar actionBar = getSupportActionBar();
-        if (null != actionBar) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }
+        setupToolbar();
 
         //
         mPages.add(KEYSTORE_PAGE_INDEX, new BCViewPagerData(getString(R.string.keystore), new BCImportKeystoreFragment()));
@@ -65,12 +60,18 @@ public class BCImportWalletActivity extends AppCompatActivity {
         mViewModel.error().observe(this, this::onError);
     }
 
-    private void onWallet(BCWalletData wallet) {
+    @Override
+    public void onBackPressed() {
+        setResult(RESULT_CANCELED);
+        super.onBackPressed();
+    }
 
+    private void onWallet(BCWalletData wallet) {
+        setResult(RESULT_OK, null);
+        finish();
     }
 
     private void onError(Integer err) {
-
+        Log.d(TAG, "onError 111");
     }
-
 }

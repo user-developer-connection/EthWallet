@@ -6,7 +6,12 @@
     android:background="#FFFFFF"
     tools:layout_editor_absoluteY="25dp">
 
-    <include layout="@layout/layout_app_bar" />
+    <include
+        layout="@layout/layout_app_bar"
+        app:layout_constraintBottom_toTopOf="@+id/nestedScrollView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <android.support.v4.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -57,7 +62,7 @@
                     android:orientation="horizontal">
 
                     <TextView
-                        android:id="@+id/ethAvailable"
+                        android:id="@+id/accountBalance"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginRight="3dp"
@@ -217,7 +222,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:gravity="right"
-                        android:text="20 Gwei"
+                        android:text="2 Gwei"
                         android:textSize="12sp" />
                 </LinearLayout>
             </LinearLayout>
@@ -325,7 +330,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
-                    android:text="21000"
+                    android:text="0"
                     android:textColor="@color/colorPrimaryDark"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -339,7 +344,7 @@
                 android:layout_marginLeft="10dp"
                 android:layout_marginRight="10dp"
                 android:layout_marginTop="4dp"
-                android:max="90000"
+                android:max="300000"
                 android:progress="21000" />
 
             <View

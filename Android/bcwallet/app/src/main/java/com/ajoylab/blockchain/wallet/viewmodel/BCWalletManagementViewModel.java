@@ -6,6 +6,7 @@ import android.arch.lifecycle.ViewModel;
 import android.util.Log;
 
 import com.ajoylab.blockchain.wallet.BCWallet;
+import com.ajoylab.blockchain.wallet.common.BCPreference;
 import com.ajoylab.blockchain.wallet.model.BCWalletData;
 import com.ajoylab.blockchain.wallet.services.BCGasManager;
 import com.ajoylab.blockchain.wallet.services.BCGethManager;
@@ -25,28 +26,12 @@ public class BCWalletManagementViewModel extends ViewModel
 {
     private static final String TAG = "###BCWalletManagementVM";
 
-    private final MutableLiveData<BigInteger> mPropPrice = new MutableLiveData<>();
-    private final MutableLiveData<String> mPropName = new MutableLiveData<>();
     private final MutableLiveData<BigInteger> mGasPrice = new MutableLiveData<>();
     private final MutableLiveData<BigInteger> mGasLimit = new MutableLiveData<>();
     private final MutableLiveData<BCWalletData> mDefaultWallet = new MutableLiveData<>();
     private final MutableLiveData<BCWalletData[]> mWalletList = new MutableLiveData<>();
 
     public BCWalletManagementViewModel() {}
-
-    public LiveData<BigInteger> propPrice() { return mPropPrice; }
-    public void setPropPrice(BigInteger propPrice) { mPropPrice.setValue(propPrice); }
-
-    public LiveData<String> propName() { return mPropName; }
-    public void setPropName(String propName) { mPropName.setValue(propName); }
-
-    public LiveData<BigInteger> gasPrice() { return mGasPrice; }
-    public void SetGasPrice(BigInteger price) { mGasPrice.setValue(price); }
-
-    public LiveData<BigInteger> gasLimit() {
-        return mGasLimit;
-    }
-    public void SetGasLimit(BigInteger limit) { mGasLimit.setValue(limit); }
 
     public LiveData<BCWalletData> defaultWallet() { return mDefaultWallet; }
     public void setDefaultWallet(BCWalletData wallet) {
@@ -61,34 +46,63 @@ public class BCWalletManagementViewModel extends ViewModel
     }
 
     public void onResume() {
-        mGasPrice.postValue(BCGasManager.getInstance().getGasPriceDefault());
-        mGasLimit.postValue(BCGasManager.getInstance().getGasLimitDefault());
+        //mGasPrice.postValue(BCGasManager.getInstance().getGasPriceDefault());
+        //mGasLimit.postValue(BCGasManager.getInstance().getGasLimitDefault());
 
         Log.d(TAG, "onResume 111 gasPrice: " + mGasPrice + " gasLimit: " + mGasLimit);
 
+        /*
         BCWalletManager.getInstance().getDefaultWallet()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(this::onDefaultWallet, this::onError);
+                */
+
+        refreshWalletAccounts();
+
         Log.d(TAG, "onResume 222");
     }
 
-    public void getWalletList() {
-        Log.d(TAG, "getWalletList 111");
+    public void refreshWalletAccounts() {
+        Log.d(TAG, "refreshWalletAccounts 111");
 
-        BCWalletManager.getInstance().getWalletList()
+        BCWalletManager.getInstance().refreshWalletAccounts()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(this::onGetWalletList, this::onError);
+                .subscribe(this::onRefreshWalletAccounts, this::onError);
 
+    }
+
+    private void onRefreshWalletAccounts(BCWalletData[] list) {
+        Log.d(TAG, "onRefreshWalletAccounts 111 count: " + list.length);
+        mWalletList.postValue(list);
+
+        if (list.length <= 0)
+            return;
+
+
+        String prefDefaultWallet = BCPreference.getInstance().getCurrentWallet();
+        Log.d(TAG, "onRefreshWalletAccounts 222 address: " + prefDefaultWallet);
+        if (null == prefDefaultWallet) {
+            prefDefaultWallet = list[0].getAddress();
+        }
+
+        for (BCWalletData wallet : list) {
+            if (wallet.sameAddress(prefDefaultWallet)) {
+                Log.d(TAG, "onRefreshWalletAccounts 333 address: " + prefDefaultWallet);
+                setDefaultWallet(wallet);
+            }
+        }
+
+
+        /*
+        BCWalletManager.getInstance().getDefaultWallet()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(this::onDefaultWallet, this::onError);
+                */
     }
 
     private void onDefaultWallet(BCWalletData wallet) {
         Log.d(TAG, "onDefaultWallet 222 address: " + wallet.getAddress());
         mDefaultWallet.postValue(wallet);
-    }
-
-    private void onGetWalletList(BCWalletData[] list) {
-        Log.d(TAG, "onGetWalletList 111 count: " + list.length);
-        mWalletList.postValue(list);
     }
 
     private void onError(Throwable throwable) {

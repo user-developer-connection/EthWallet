@@ -6,26 +6,47 @@ package com.ajoylab.blockchain.wallet.services;
 
 import android.util.Log;
 
+import com.ajoylab.blockchain.wallet.BCWallet;
 import com.ajoylab.blockchain.wallet.model.BCWalletData;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.ethereum.geth.Account;
 import org.ethereum.geth.Accounts;
 import org.ethereum.geth.Address;
+import org.ethereum.geth.BigInt;
 import org.ethereum.geth.Geth;
 import org.ethereum.geth.KeyStore;
+import org.ethereum.geth.Transaction;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.web3j.crypto.ECKeyPair;
+import org.web3j.crypto.WalletFile;
 
 import java.io.File;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.util.concurrent.Callable;
 
+import io.reactivex.Completable;
 import io.reactivex.Single;
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
+
+import static org.web3j.crypto.Wallet.create;
 
 public class BCGethManager
 {
     private static final String TAG = "###BCGethManager";
+
+    private static final int PRIVATE_KEY_RADIX = 16;
+    /**
+     * CPU/Memory cost parameter. Must be larger than 1, a power of 2 and less than 2^(128 * r / 8).
+     */
+    private static final int N = 1 << 9;
+    /**
+     * Parallelization parameter. Must be a positive integer less than or equal to Integer.MAX_VALUE / (128 * r * 8).
+     */
+    private static final int P = 1;
 
     private KeyStore mKeyStore;
 
@@ -44,6 +65,7 @@ public class BCGethManager
         return mKeyStore.hasAddress(new Address(address));
     }
 
+    /*
     public Single<BCWalletData[]> getWalletList() {
         Log.d(TAG, "getWalletList 111");
         return Single.fromCallable(() -> {
@@ -59,19 +81,68 @@ public class BCGethManager
             }
             return result;
         }).subscribeOn(Schedulers.io());
+    }*/
+
+    public Single<String[]> getWalletAccounts() {
+        Log.d(TAG, "getWalletAccounts 111");
+        return Single.fromCallable(() -> {
+            Accounts accounts = mKeyStore.getAccounts();
+            int len = (int)accounts.size();
+            String[] result = new String[len];
+
+            Log.d(TAG, "getWalletAccounts 222 count: " + len);
+
+            for (int i = 0; i < len; i++) {
+                org.ethereum.geth.Account gethAccount = accounts.get(i);
+                result[i] = gethAccount.getAddress().getHex().toLowerCase();
+            }
+            return result;
+        }).subscribeOn(Schedulers.io());
+    }
+
+    public Completable deleteWallet(String address, String password) {
+        return Single.fromCallable(() -> findAccount(address))
+                .flatMapCompletable(account -> Completable.fromAction(() -> mKeyStore.deleteAccount(account, password)))
+                .subscribeOn(Schedulers.io());
     }
 
     public Single<BCWalletData> importKeystore(final String store, final String password, final String newPassword) {
 
 
+        /*
+        return Single.fromCallable(() -> {
+            String address = extractAddressFromStore(store);
+            if (hasAccount(address)) {
+                throw new ServiceErrorException(C.ErrorCode.ALREADY_ADDED, "Already added");
+            }
+            Account account;
+            try {
+                account = keyStore
+                        .importKey(store.getBytes(Charset.forName("UTF-8")), password, newPassword);
+            } catch (Exception ex) {
+                // We need to make sure that we do not have a broken account
+                deleteAccount(address, newPassword).subscribe(() -> {}, t -> {});
+                throw ex;
+            }
+            return new Wallet(account.getAddress().getHex().toLowerCase());
+        }).subscribeOn(Schedulers.io());
+         */
+
+        Log.d(TAG, "importKeystore 111");
+
         return Single.fromCallable(new Callable<BCWalletData>() {
             @Override
             public BCWalletData call() throws Exception {
+
+                Log.d(TAG, "importKeystore 222");
+
                 String address = "";
                 try {
                     JSONObject jsonObject = new JSONObject(store);
                     address =  "0x" + jsonObject.getString("address");
+                    Log.d(TAG, "importKeystore 333: " + address);
                 } catch (JSONException ex) {
+                    Log.d(TAG, "importKeystore 444");
                     throw new Exception("Invalid keystore");
                 }
 
@@ -82,13 +153,77 @@ public class BCGethManager
 
                 Account account = null;
                 try {
+                    Log.d(TAG, "importKeystore 555 pwd: " + password + " nPWD: " + newPassword);
                     account = mKeyStore.importKey(store.getBytes(Charset.forName("UTF-8")), password, newPassword);
                 } catch (Exception e) {
                     //deleteAccount(address, newPassword).subscribe(() -> {}, t -> {});
+                    Log.d(TAG, "importKeystore 666");
                     throw e;
                 }
+                Log.d(TAG, "importKeystore 777");
                 return new BCWalletData(account.getAddress().getHex().toLowerCase());
             }
         }).subscribeOn(Schedulers.io());
+    }
+
+    public Single<BCWalletData> importPrivateKey(String privateKey, String newPassword) {
+        return Single.fromCallable(() -> {
+            BigInteger key = new BigInteger(privateKey, PRIVATE_KEY_RADIX);
+            ECKeyPair keypair = ECKeyPair.create(key);
+            WalletFile walletFile = create(newPassword, keypair, N, P);
+            return new ObjectMapper().writeValueAsString(walletFile);
+        }).compose(upstream -> importKeystore(upstream.blockingGet(), newPassword, newPassword));
+    }
+
+    public Single<byte[]> signTransaction(BCWalletData from,
+                                          String signerPassword,
+                                          String toAddress,
+                                          BigInteger amount,
+                                          BigInteger gasPrice,
+                                          BigInteger gasLimit,
+                                          long nonce,
+                                          byte[] data,
+                                          long chainId) {
+
+        Log.d(TAG, "signTransaction 111");
+
+        return Single.fromCallable(() -> {
+            BigInt amountBI = new BigInt(0);
+            amountBI.setString(amount.toString(), 10);
+
+            BigInt gasPriceBI = new BigInt(0);
+            gasPriceBI.setString(gasPrice.toString(), 10);
+
+            BigInt gasLimitBI = new BigInt(0);
+            gasLimitBI.setString(gasLimit.toString(), 10);
+
+            Transaction tx = new Transaction(nonce, new Address(toAddress), amountBI, gasLimitBI, gasPriceBI, data);
+
+            BigInt chain = new BigInt(chainId); // Chain identifier of the main net
+            Account account = findAccount(from.getAddress());
+            mKeyStore.unlock(account, signerPassword);
+            Transaction signed = mKeyStore.signTx(account, tx, chain);
+            mKeyStore.lock(account.getAddress());
+
+            Log.d(TAG, "signTransaction 222: " + signed.encodeRLP());
+            return signed.encodeRLP();
+        }).subscribeOn(Schedulers.io());
+    }
+
+    private Account findAccount(String address) throws Exception {
+        Accounts accounts = mKeyStore.getAccounts();
+        int len = (int)accounts.size();
+        for (int i = 0; i < len; i++) {
+            try {
+                Log.d(TAG, "Address: " + accounts.get(i).getAddress().getHex());
+                if (accounts.get(i).getAddress().getHex().equalsIgnoreCase(address)) {
+                    return accounts.get(i);
+                }
+            } catch (Exception ex) {
+                /* Quietly: interest only result, maybe next is ok. */
+            }
+        }
+        //throw new ServiceException("Wallet with address: " + address + " not found");
+        throw new Exception();
     }
 }

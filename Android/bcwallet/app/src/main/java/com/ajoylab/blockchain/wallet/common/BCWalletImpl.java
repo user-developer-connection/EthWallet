@@ -7,6 +7,8 @@ import android.util.Log;
 
 import com.ajoylab.blockchain.wallet.services.BCGasManager;
 import com.ajoylab.blockchain.wallet.services.BCGethManager;
+import com.ajoylab.blockchain.wallet.services.BCKeyChainManager;
+import com.ajoylab.blockchain.wallet.services.BCWalletManager;
 import com.ajoylab.blockchain.wallet.ui.BCPaymentActivity;
 
 import java.io.File;
@@ -42,6 +44,8 @@ public class BCWalletImpl
         BCGethManager.getInstance().init(file.getAbsolutePath());
         BCGasManager.getInstance().init();
         BCPreference.getInstance().init(activity);
+        BCKeyChainManager.getInstance().init(activity);
+        BCWalletManager.getInstance();
 
         Log.d(TAG, "init 333");
         mInitialized = true;

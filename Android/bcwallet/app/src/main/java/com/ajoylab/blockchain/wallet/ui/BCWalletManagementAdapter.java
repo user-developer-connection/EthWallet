@@ -30,11 +30,13 @@ public class BCWalletManagementAdapter extends RecyclerView.Adapter<BCWalletMana
     }
 
     public void setDefaultWallet(BCWalletData wallet) {
+        Log.d(TAG, "setDefaultWallet 111");
         mDefaultWallet = wallet;
         notifyDataSetChanged();
     }
 
     public void setWallets(BCWalletData[] wallets) {
+        Log.d(TAG, "setWallets 111 length: " + wallets.length);
         mWallets = (null == wallets ? new BCWalletData[0] : wallets);
         notifyDataSetChanged();
     }

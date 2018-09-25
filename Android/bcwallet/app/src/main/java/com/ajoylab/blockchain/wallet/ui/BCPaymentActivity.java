@@ -19,6 +19,9 @@ import com.ajoylab.blockchain.wallet.common.BCConstants;
 import com.ajoylab.blockchain.wallet.model.BCWalletData;
 import com.ajoylab.blockchain.wallet.utils.BCBalanceUtils;
 import com.ajoylab.blockchain.wallet.viewmodel.BCPaymentViewModel;
+import com.fasterxml.jackson.databind.node.BigIntegerNode;
+
+import org.web3j.protocol.core.methods.response.EthGasPrice;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -36,7 +39,9 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
     private TextView mPropPriceText;
     private TextView mPropNameText;
     private TextView mAccountText;
+    private TextView mAccountBalanceText;
     private TextView mGasPriceText;
+    private TextView mDefaultGasPrice;
     private SeekBar mGasPriceSeekBar;
     private TextView mGasLimitText;
     private SeekBar mGasLimitSeekBar;
@@ -53,7 +58,9 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
         mPropPriceText = findViewById(R.id.propPrice);
         mPropNameText = findViewById(R.id.propName);
         mAccountText = findViewById(R.id.accountAddress);
+        mAccountBalanceText = findViewById(R.id.accountBalance);
         mGasPriceText = findViewById(R.id.gasPrice);
+        mDefaultGasPrice = findViewById(R.id.defaultGasPrice);
         mGasPriceSeekBar = findViewById(R.id.gasPriceSeekBar);
         mGasLimitText = findViewById(R.id.gasLimit);
         mGasLimitSeekBar = findViewById(R.id.gasLimitSeekBar);
@@ -89,15 +96,18 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
                     }
                 });
 
-        mGasLimitSeekBar.setMax(BCBalanceUtils.weiToGweiBI(mViewModel.gasLimitMax().subtract(mViewModel.gasLimitMin())).intValue());
-        mGasLimitSeekBar.setProgress(BCBalanceUtils.weiToGweiBI(mViewModel.gasLimitDefault()).intValue());
+        int max = mViewModel.gasLimitMax().subtract(mViewModel.gasLimitMin()).intValue();
+        Log.d(TAG, "Limit max is: " + max + " max: " + mViewModel.gasLimitMax().intValue() + " min: " + mViewModel.gasLimitMin().intValue());
+
+        mGasLimitSeekBar.setMax(mViewModel.gasLimitMax().subtract(mViewModel.gasLimitMin()).intValue());
+        mGasLimitSeekBar.setProgress(mViewModel.gasLimitDefault().intValue());
         mGasLimitSeekBar.refreshDrawableState();
         mGasLimitSeekBar.setOnSeekBarChangeListener(
                 new SeekBar.OnSeekBarChangeListener() {
                     @Override
                     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                         Log.d(TAG, "onViewCreated 888 progress: " + progress);
-                        mViewModel.gasLimitActual().setValue(BCBalanceUtils.gweiToWei(BigDecimal.valueOf(progress)).add(mViewModel.gasLimitMin()));
+                        mViewModel.gasLimitActual().setValue(BigInteger.valueOf(progress).add(mViewModel.gasLimitMin()));
                     }
 
                     @Override
@@ -109,16 +119,13 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
                     }
                 });
 
-        Log.d(TAG, "onCreate 333");
-
         mViewModel.gasPriceActual().observe(this, this::onGasPriceActual);
         mViewModel.gasLimitActual().observe(this, this::onGasLimitActual);
         mViewModel.defaultWallet().observe(this, this::onDefaultWallet);
+        mViewModel.defaultWalletBalanceInWei().observe(this, this::onDefaultWalletBalanceInWei);
 
         findViewById(R.id.paymentButton).setOnClickListener(this);
         findViewById(R.id.changeWallIcon).setOnClickListener(this);
-
-        Log.d(TAG, "onCreate 444");
     }
 
     @Override
@@ -152,10 +159,17 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
         int i = view.getId();
 
         if (R.id.changeWallIcon == i) {
-            Log.d(TAG, "onViewCreated 111");
+            Log.d(TAG, "onClick 111");
             Intent intent = new Intent(this, BCWalletManagementActivity.class);
             startActivity(intent);
         } else if (R.id.paymentButton == i) {
+            Log.d(TAG, "onClick 222");
+            mViewModel.createTransaction(
+                    mAccountText.getText().toString(),
+                    "0x0721628278526f691b6122eeb74f5f088e8042e8",
+                    BCBalanceUtils.baseToSubunit(mPropPriceText.getText().toString(), BCConstants.ETHER_DECIMALS),
+                    mViewModel.gasPriceActual().getValue(),
+                    mViewModel.gasLimitActual().getValue());
         }
     }
 
@@ -177,7 +191,19 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
     }
 
     private void onDefaultWallet(BCWalletData wallet) {
+        Log.d(TAG, "onDefaultWallet 111: " + wallet.getAddress());
         mAccountText.setText(wallet.getAddress());
     }
 
+    private void onDefaultWalletBalanceInWei(BigInteger balance) {
+
+        Log.d(TAG, "onDefaultWalletBalanceInWei 111");
+
+        try {
+            BigDecimal b = BCBalanceUtils.weiToEth(balance, 4);
+            mAccountBalanceText.setText(b.toPlainString());
+        } catch (Exception ex) {
+            Log.d(TAG, "onDefaultWalletBalanceInWei: " + ex);
+        }
+    }
 }

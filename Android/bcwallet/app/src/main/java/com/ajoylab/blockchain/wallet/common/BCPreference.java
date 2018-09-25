@@ -35,11 +35,11 @@ public class BCPreference
 	}
 
 	public void setCurrentWallet(String address) {
-		Log.d(TAG, "getCurrentWallet 111 address: " + address);
+		Log.d(TAG, "setCurrentWallet 111 address: " + address);
 		if (null == mPref)
 			return;
 
-		Log.d(TAG, "getCurrentWallet 222");
+		Log.d(TAG, "setCurrentWallet 222");
 
 		mPref.edit().putString(PREF_CURRENT_WALLET_ACCOUNT, address).apply();
 	}
