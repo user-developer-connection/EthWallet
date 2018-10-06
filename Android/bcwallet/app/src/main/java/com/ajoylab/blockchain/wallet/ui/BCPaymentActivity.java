@@ -3,19 +3,26 @@ package com.ajoylab.blockchain.wallet.ui;
 import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProvider;
 import android.arch.lifecycle.ViewModelProviders;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.ajoylab.blockchain.wallet.R;
 import com.ajoylab.blockchain.wallet.common.BCConstants;
+import com.ajoylab.blockchain.wallet.common.BCException;
 import com.ajoylab.blockchain.wallet.model.BCWalletData;
 import com.ajoylab.blockchain.wallet.utils.BCBalanceUtils;
 import com.ajoylab.blockchain.wallet.viewmodel.BCPaymentViewModel;
@@ -46,6 +53,7 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
     private TextView mGasLimitText;
     private SeekBar mGasLimitSeekBar;
     private TextView mTotalCostText;
+    private AlertDialog mAlertDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,11 +78,13 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
         String propPrice = getIntent().getStringExtra(BCConstants.EXTRA_PROP_PRICE);
         Log.d(TAG, "onCreate 222 propName: " + propName + " propPrice: " + propPrice);
         mPropNameText.setText(propName);
-        mPropPriceText.setText(propPrice);
+        mPropPriceText.setText(propPrice + " " + BCConstants.SYMBOL_ETH);
 
         mViewModel = ViewModelProviders.of(this).get(BCPaymentViewModel.class);
         mViewModel.setPropName(propName);
         mViewModel.setPropPrice(BCBalanceUtils.baseToSubunit(propPrice, BCConstants.ETHER_DECIMALS));
+        Log.d(TAG, "onCreate 333 GWEI: " + BCBalanceUtils.weiToGwei(mViewModel.gasPriceDefault()));
+        mDefaultGasPrice.setText(BCBalanceUtils.weiToGwei(mViewModel.gasPriceDefault()) + " Gwei");
 
         mGasPriceSeekBar.setMax(BCBalanceUtils.weiToGweiBI(mViewModel.gasPriceMax().subtract(mViewModel.gasPriceMin())).intValue());
         mGasPriceSeekBar.setProgress(BCBalanceUtils.weiToGweiBI(mViewModel.gasPriceDefault()).intValue());
@@ -123,7 +133,11 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
         mViewModel.gasLimitActual().observe(this, this::onGasLimitActual);
         mViewModel.defaultWallet().observe(this, this::onDefaultWallet);
         mViewModel.defaultWalletBalanceInWei().observe(this, this::onDefaultWalletBalanceInWei);
+        mViewModel.transaction().observe(this, this::onPurchaseTransaction);
+        mViewModel.isInProgress().observe(this, this::onIsInProgress);
+        mViewModel.exception().observe(this, this::onException);
 
+        mAccountText.setOnClickListener(this);
         findViewById(R.id.paymentButton).setOnClickListener(this);
         findViewById(R.id.changeWallIcon).setOnClickListener(this);
     }
@@ -158,7 +172,7 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
     public void onClick(View view) {
         int i = view.getId();
 
-        if (R.id.changeWallIcon == i) {
+        if (R.id.changeWallIcon == i || R.id.accountAddress == i) {
             Log.d(TAG, "onClick 111");
             Intent intent = new Intent(this, BCWalletManagementActivity.class);
             startActivity(intent);
@@ -167,7 +181,7 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
             mViewModel.createTransaction(
                     mAccountText.getText().toString(),
                     "0x0721628278526f691b6122eeb74f5f088e8042e8",
-                    BCBalanceUtils.baseToSubunit(mPropPriceText.getText().toString(), BCConstants.ETHER_DECIMALS),
+                    mViewModel.propPrice(),
                     mViewModel.gasPriceActual().getValue(),
                     mViewModel.gasLimitActual().getValue());
         }
@@ -204,6 +218,68 @@ public class BCPaymentActivity extends BCBaseActivity implements View.OnClickLis
             mAccountBalanceText.setText(b.toPlainString());
         } catch (Exception ex) {
             Log.d(TAG, "onDefaultWalletBalanceInWei: " + ex);
+        }
+    }
+
+    private void onPurchaseTransaction(String tx) {
+        Log.d(TAG, "onPurchaseTransaction 111");
+        hideDialog();
+        mAlertDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.alert_dialog_title_pruchasing_succeed)
+                .setMessage(tx)
+                .setPositiveButton(R.string.alert_dialog_button_ok, (dialog1, id) -> {
+                    finish();
+                })
+                /*
+                .setNeutralButton(R.string.copy, (dialog1, id) -> {
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("transaction hash", hash);
+                    clipboard.setPrimaryClip(clip);
+                    finish();
+                })*/
+                .create();
+        mAlertDialog.show();
+
+        Log.d(TAG, "onPurchaseTransaction 222");
+        Intent broadcast = new Intent(BCConstants.LOCALBROADCAST_PAYMENT_SUCCEED);
+        broadcast.putExtra(BCConstants.LOCALBROADCAST_PAYMENT_EXTRA_PROP_NAME, mPropNameText.getText().toString());
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(broadcast);
+    }
+
+    private void onIsInProgress(boolean isInProgress) {
+        Log.d(TAG, "onIsInProgress 111");
+        hideDialog();
+        if (isInProgress) {
+            mAlertDialog = new AlertDialog.Builder(this)
+                    .setTitle(R.string.alert_dialog_title_purchasing)
+                    .setView(new ProgressBar(this))
+                    .setCancelable(false)
+                    .create();
+            mAlertDialog.show();
+        }
+    }
+
+    private void onException(BCException error) {
+        Log.d(TAG, "onException 111");
+        hideDialog();
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.alert_dialog_title_pruchasing_faild)
+                .setMessage(error.getMessage())
+                .setPositiveButton(R.string.alert_dialog_button_ok, (dialog1, id) -> {
+                    // Do nothing
+                })
+                .create();
+        dialog.show();
+
+        Log.d(TAG, "onException 111");
+        Intent broadcast = new Intent(BCConstants.LOCALBROADCAST_PAYMENT_FAIL);
+        broadcast.putExtra(BCConstants.LOCALBROADCAST_PAYMENT_EXTRA_PROP_NAME, mPropNameText.getText().toString());
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(broadcast);
+    }
+
+    private void hideDialog() {
+        if (null != mAlertDialog && mAlertDialog.isShowing()) {
+            mAlertDialog.dismiss();
         }
     }
 }

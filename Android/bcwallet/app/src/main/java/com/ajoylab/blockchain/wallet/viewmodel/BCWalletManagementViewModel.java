@@ -3,9 +3,12 @@ package com.ajoylab.blockchain.wallet.viewmodel;
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.ViewModel;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.ajoylab.blockchain.wallet.BCWallet;
+import com.ajoylab.blockchain.wallet.common.BCConstants;
+import com.ajoylab.blockchain.wallet.common.BCException;
 import com.ajoylab.blockchain.wallet.common.BCPreference;
 import com.ajoylab.blockchain.wallet.model.BCWalletData;
 import com.ajoylab.blockchain.wallet.services.BCGasManager;
@@ -22,50 +25,30 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
  * Created by liuya on 2018/1/23.
  */
 
-public class BCWalletManagementViewModel extends ViewModel
+public class BCWalletManagementViewModel extends BCViewModelBase
 {
     private static final String TAG = "###BCWalletManagementVM";
 
-    private final MutableLiveData<BigInteger> mGasPrice = new MutableLiveData<>();
-    private final MutableLiveData<BigInteger> mGasLimit = new MutableLiveData<>();
     private final MutableLiveData<BCWalletData> mDefaultWallet = new MutableLiveData<>();
     private final MutableLiveData<BCWalletData[]> mWalletList = new MutableLiveData<>();
 
     public BCWalletManagementViewModel() {}
 
-    public LiveData<BCWalletData> defaultWallet() { return mDefaultWallet; }
-    public void setDefaultWallet(BCWalletData wallet) {
-        Log.d(TAG, "setDefaultWallet 222");
-        BCWalletManager.getInstance().setDefaultWallet(wallet)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(() -> onDefaultWallet(wallet), this::onError);
-    }
-
     public LiveData<BCWalletData[]> walletList() {
         return mWalletList;
     }
 
+    public LiveData<BCWalletData> defaultWallet() { return mDefaultWallet; }
+
     public void onResume() {
-        //mGasPrice.postValue(BCGasManager.getInstance().getGasPriceDefault());
-        //mGasLimit.postValue(BCGasManager.getInstance().getGasLimitDefault());
-
-        Log.d(TAG, "onResume 111 gasPrice: " + mGasPrice + " gasLimit: " + mGasLimit);
-
-        /*
-        BCWalletManager.getInstance().getDefaultWallet()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(this::onDefaultWallet, this::onError);
-                */
-
+        Log.d(TAG, "onResume");
         refreshWalletAccounts();
-
-        Log.d(TAG, "onResume 222");
     }
 
     public void refreshWalletAccounts() {
         Log.d(TAG, "refreshWalletAccounts 111");
-
-        BCWalletManager.getInstance().refreshWalletAccounts()
+        mIsInProgress.postValue(true);
+        mDisposable = BCWalletManager.getInstance().refreshWalletAccounts()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(this::onRefreshWalletAccounts, this::onError);
 
@@ -73,11 +56,13 @@ public class BCWalletManagementViewModel extends ViewModel
 
     private void onRefreshWalletAccounts(BCWalletData[] list) {
         Log.d(TAG, "onRefreshWalletAccounts 111 count: " + list.length);
+
         mWalletList.postValue(list);
-
-        if (list.length <= 0)
+        if (list.length <= 0) {
+            Log.d(TAG, "onRefreshWalletAccounts 222 No Wallet Return: ");
+            mIsInProgress.postValue(false);
             return;
-
+        }
 
         String prefDefaultWallet = BCPreference.getInstance().getCurrentWallet();
         Log.d(TAG, "onRefreshWalletAccounts 222 address: " + prefDefaultWallet);
@@ -88,24 +73,22 @@ public class BCWalletManagementViewModel extends ViewModel
         for (BCWalletData wallet : list) {
             if (wallet.sameAddress(prefDefaultWallet)) {
                 Log.d(TAG, "onRefreshWalletAccounts 333 address: " + prefDefaultWallet);
-                setDefaultWallet(wallet);
+                onDefaultWallet(wallet);
             }
         }
 
+        mIsInProgress.postValue(false);
+    }
 
-        /*
-        BCWalletManager.getInstance().getDefaultWallet()
+    public void handleSelectDefaultWallet(BCWalletData wallet) {
+        Log.d(TAG, "setDefaultWallet 222");
+        mDisposable = BCWalletManager.getInstance().setDefaultWallet(wallet)
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(this::onDefaultWallet, this::onError);
-                */
+                .subscribe(() -> onDefaultWallet(wallet), this::onError);
     }
 
     private void onDefaultWallet(BCWalletData wallet) {
         Log.d(TAG, "onDefaultWallet 222 address: " + wallet.getAddress());
         mDefaultWallet.postValue(wallet);
-    }
-
-    private void onError(Throwable throwable) {
-        Log.d(TAG, "onError 111: " + throwable.getLocalizedMessage());
     }
 }

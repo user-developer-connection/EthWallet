@@ -3,6 +3,7 @@ package com.ajoylab.blockchain.wallet.services;
 import android.util.Log;
 
 import com.ajoylab.blockchain.wallet.common.BCConstants;
+import com.ajoylab.blockchain.wallet.common.BCException;
 import com.ajoylab.blockchain.wallet.model.BCWalletData;
 import com.fasterxml.jackson.databind.node.BigIntegerNode;
 
@@ -43,7 +44,7 @@ public class BCTransactionManager
     }
 
 
-    public Single<String> createTransaction(BCWalletData from,
+    public Single<String> createTransaction(String fromAddress,
                                             String toAddress,
                                             BigInteger subunitAmount,
                                             BigInteger gasPrice,
@@ -51,22 +52,22 @@ public class BCTransactionManager
                                             byte[] data,
                                             String password) {
 
-        Log.d(TAG, "createTransaction 111");
+        Log.d(TAG, "createTransaction 111 from: " + fromAddress + " to: " + toAddress + " amoutInWei: " + subunitAmount.longValue() + " gasPrice: " + gasPrice.longValue() + "gasLimit: " + gasLimit.intValue());
 
-        final Web3j web3j = Web3jFactory.build(new HttpService("https://kovan.infura.io/llyrtzQ3YhkdESt2Fzrk"));
+        final Web3j web3j = Web3jFactory.build(new HttpService(BCNetworkConfigManager.getInstance().getDefaultNetwork().rpcServerUrl));
 
         return Single.fromCallable(() -> {
-            EthGetTransactionCount tx = web3j.ethGetTransactionCount(from.getAddress(), DefaultBlockParameterName.LATEST).send();
+            EthGetTransactionCount tx = web3j.ethGetTransactionCount(fromAddress, DefaultBlockParameterName.LATEST).send();
             Log.d(TAG, "createTransaction 222: " + tx.getTransactionCount());
             return tx.getTransactionCount();
         })
-        .flatMap(nonce -> BCGethManager.getInstance().signTransaction(from, password, toAddress, subunitAmount, gasPrice, gasLimit, nonce.longValue(), data, 42))
+        .flatMap(nonce -> BCGethManager.getInstance().signTransaction(fromAddress, password, toAddress, subunitAmount, gasPrice, gasLimit, nonce.longValue(), data, 42))
         .flatMap(signedTx -> Single.fromCallable(() -> {
             Log.d(TAG, "createTransaction 333");
             EthSendTransaction raw = web3j.ethSendRawTransaction(Numeric.toHexString(signedTx)).send();
             if (raw.hasError()) {
                 Log.d(TAG, "createTransaction 444: " + raw.getError().getMessage());
-                //throw new ServiceException(raw.getError().getMessage());
+                throw new BCException(BCConstants.ERROR_CODE_UNKNOWN, raw.getError().getMessage());
             }
             return raw.getTransactionHash();
         }))

@@ -44,21 +44,17 @@ public class BCWalletManager
     private static final BCWalletManager mInstance = new BCWalletManager();
     public static BCWalletManager getInstance() { return mInstance; }
 
-    //private Map<String, BCWalletData> mWalletList = new HashMap<>();
-    //private final List<BCWalletData> mWalletList = new ArrayList<>();
+    private final List<BCWalletData> mWalletList = new ArrayList<>();
 
     public BCWalletManager() {
         Log.d(TAG, "CONSTRCTOR");
-        //refreshWalletAccounts();
+        refreshWalletAccounts();
     }
-
-    //public BCWalletData[] getWalletAccounts() { return mWalletList.toArray(new BCWalletData[mWalletList.size()]); }
 
     private Single<BCWalletData> findWallet(String address) {
         Log.d(TAG, "findWallet 111 thread: " + Thread.currentThread().getId());
         Log.d(TAG, "findWallet 222 addr: " + address);
 
-        /*
         return Single.fromCallable(() -> {
             for (BCWalletData wallet : mWalletList) {
                 if (wallet.sameAddress(address)) {
@@ -67,20 +63,6 @@ public class BCWalletManager
                 }
             }
 
-            Log.d(TAG, "findWallet 444 return null");
-            return null;
-        });
-        */
-
-
-
-        return refreshWalletAccounts().flatMap(accounts -> {
-            for (BCWalletData wallet : accounts) {
-                if (wallet.sameAddress(address)) {
-                    Log.d(TAG, "findWallet 333");
-                    return Single.just(wallet);
-                }
-            }
             Log.d(TAG, "findWallet 444 return null");
             return null;
         });
@@ -98,17 +80,6 @@ public class BCWalletManager
 
         Log.d(TAG, "getDefaultWallet 111 thread: " + Thread.currentThread().getId());
 
-        /*
-        String prefDefaultWallet = BCPreference.getInstance().getCurrentWallet();
-        if (null == prefDefaultWallet && mWalletList.size() > 0) {
-            prefDefaultWallet = mWalletList.get(0).getAddress();
-            BCPreference.getInstance().setCurrentWallet(prefDefaultWallet);
-        }
-
-        Log.d(TAG, "getDefaultWallet 222 address: " + prefDefaultWallet);
-        return findWallet(prefDefaultWallet);
-        */
-
         return doGetDefaultWallet()
                 .onErrorResumeNext(refreshWalletAccounts()
                         .to(single -> Flowable.fromArray(single.blockingGet()))
@@ -125,32 +96,21 @@ public class BCWalletManager
 
     public Single<BCWalletData[]> refreshWalletAccounts() {
         Log.d(TAG, "refreshWalletAccounts 111");
-        return BCGethManager.getInstance()
-                .getWalletAccounts()
-                .compose(upstream -> onRefreshWalletAccounts(upstream.blockingGet()));
-    }
-
-    /*
-    public Single<BCWalletData[]> refreshWalletAccounts() {
-        Log.d(TAG, "getWallList 111");
         mWalletList.clear();
         return BCGethManager.getInstance()
                 .getWalletAccounts()
                 .compose(upstream -> onRefreshWalletAccounts(upstream.blockingGet()));
     }
-    */
 
     private Single<BCWalletData[]> onRefreshWalletAccounts(String[] wallets) {
 
         Log.d(TAG, "onRefreshWalletAccounts 111 count: " + wallets.length);
         return Single.fromCallable(() -> {
             int len = wallets.length;
-            BCWalletData[] result = new BCWalletData[len];
             for (int i = 0; i < len; i++) {
-                result[i] = new BCWalletData(wallets[i]);
-                result[i].retrieveBalance();
+                mWalletList.add(new BCWalletData(wallets[i]));
             }
-            return result;
+            return mWalletList.toArray(new BCWalletData[len]);
         }).subscribeOn(Schedulers.io());
     }
 
@@ -164,7 +124,7 @@ public class BCWalletManager
         return BCGethManager.getInstance()
                 .importKeystore(keystore, password, pwd)
                 .flatMap(bcWalletData ->
-                        keyChain.setPassword(bcWalletData, pwd)
+                        keyChain.setPassword(bcWalletData.getAddress(), pwd)
                                 .onErrorResumeNext(err -> deleteWallet(bcWalletData.getAddress(), pwd))
                                 .toSingle(() -> bcWalletData));
     }
@@ -178,7 +138,7 @@ public class BCWalletManager
         return BCGethManager.getInstance()
                 .importPrivateKey(privateKey, pwd)
                 .flatMap(bcWalletData ->
-                        keyChain.setPassword(bcWalletData, pwd)
+                        keyChain.setPassword(bcWalletData.getAddress(), pwd)
                                 .onErrorResumeNext(err -> deleteWallet(bcWalletData.getAddress(), pwd))
                                 .toSingle(() -> bcWalletData));
     }
@@ -192,7 +152,7 @@ public class BCWalletManager
         Log.d(TAG, "getBalanceInWei 111");
 
         return Single.fromCallable(() -> Web3jFactory
-                .build(new HttpService("https://kovan.infura.io/llyrtzQ3YhkdESt2Fzrk"))
+                .build(new HttpService(BCNetworkConfigManager.getInstance().getDefaultNetwork().rpcServerUrl))
                 .ethGetBalance(wallet.getAddress(), DefaultBlockParameterName.LATEST)
                 .send()
                 .getBalance())

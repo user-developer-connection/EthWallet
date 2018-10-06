@@ -32,26 +32,24 @@ public class BCKeyChainManager
         mContext = context;
     }
 
-    public Single<String> getPassword(BCWalletData wallet) {
+    public Single<String> getPassword(String address) {
         return Single.fromCallable(() -> {
-            String addr = wallet.getAddress();
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                return new String(BCSecurityKeyStore.getData(mContext, addr, addr, addr + "iv"));
+                return new String(BCSecurityKeyStore.getData(mContext, address, address, address + "iv"));
             } else {
-                return BCSecurityKeyStorePreApi23.getData(mContext, addr);
+                return BCSecurityKeyStorePreApi23.getData(mContext, address);
             }
         });
     }
 
-    public Completable setPassword(BCWalletData wallet, String password) {
+    public Completable setPassword(String address, String password) {
         return Completable.fromAction(() -> {
-            String addr = wallet.getAddress();
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                BCSecurityKeyStore.setData(mContext, password.getBytes(), addr, addr, addr + "iv");
+                BCSecurityKeyStore.setData(mContext, password.getBytes(), address, address, address + "iv");
             } else {
-                BCSecurityKeyStorePreApi23.setData(mContext, addr, password);
+                BCSecurityKeyStorePreApi23.setData(mContext, address, password);
             }
         });
     }

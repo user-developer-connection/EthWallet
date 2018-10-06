@@ -24,5 +24,12 @@
     <string name="payment_text_no_wallet">No Wallet</string>
     <string name="payment_confirm">Pay</string>
     <string name="payment_placeholder">-</string>
+    <string name="alert_dialog_title_purchasing">Purchasing...</string>
+    <string name="alert_dialog_title_pruchasing_succeed">Purchase Succeed!</string>
+    <string name="alert_dialog_title_pruchasing_faild">Purchase Fail!</string>
+    <string name="alert_dialog_button_ok">OK</string>
+    <string name="alert_dialog_title_importing_wallet">Importing Wallet...</string>
+    <string name="alert_dialog_title_wallet_imported">Wallet imported!</string>
+    <string name="alert_dialog_title_import_wallet_fail">Fail to import Wallet!</string>
     <string name="menu_add_wallet">Add Wallet</string>
 </resources>

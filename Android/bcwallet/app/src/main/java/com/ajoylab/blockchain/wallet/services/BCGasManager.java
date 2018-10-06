@@ -65,7 +65,7 @@ public class BCGasManager
     private void fetchGasSettings() {
 
         Log.d(TAG, "fetchGasSettings 111");
-        final Web3j web3j = Web3jFactory.build(new HttpService("https://kovan.infura.io/llyrtzQ3YhkdESt2Fzrk"));
+        final Web3j web3j = Web3jFactory.build(new HttpService(BCNetworkConfigManager.getInstance().getDefaultNetwork().rpcServerUrl));
 
         try {
             EthGasPrice price = web3j.ethGasPrice().send();

@@ -2,15 +2,20 @@ package com.ajoylab.blockchain.wallet.model;
 
 import android.util.Log;
 
+import com.ajoylab.blockchain.wallet.common.BCPreference;
 import com.ajoylab.blockchain.wallet.services.BCWalletManager;
 import com.ajoylab.blockchain.wallet.utils.BCBalanceUtils;
+import com.fasterxml.jackson.databind.node.BigIntegerNode;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Completable;
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by liuya on 2018/1/18.
@@ -36,17 +41,27 @@ public class BCWalletData
     }
 
 
-    public void retrieveBalance() {
+    public Single<BigInteger> retrieveBalance() {
 
         Log.d(TAG, "retrieveBalance 111");
-        BCWalletManager.getInstance().getBalanceInWei(this)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(this::onRetrieveBalance, this::onError);
+
+        return BCWalletManager.getInstance()
+                .getBalanceInWei(this)
+                .flatMap(balance -> onRetrieveBalance(balance))
+                .subscribeOn(Schedulers.io());
     }
 
-    private void onRetrieveBalance(BigInteger balance) {
-        Log.d(TAG, "onRetrieveBalance 111: " + balance);
-        mBalanceInWei = balance;
+    private Single<BigInteger> onRetrieveBalance(BigInteger balance) {
+        return Single.fromCallable(() -> {
+            Log.d(TAG, "onRetrieveBalance 111: " + balance);
+            mBalanceInWei = balance;
+            return mBalanceInWei;
+        });
+    }
+
+    public Completable setDefaultWallet(BCWalletData wallet) {
+        Log.d(TAG, "setDefaultWallet 111");
+        return Completable.fromAction(() -> BCPreference.getInstance().setCurrentWallet(wallet.getAddress()));
     }
 
     private void onError(Throwable throwable) {

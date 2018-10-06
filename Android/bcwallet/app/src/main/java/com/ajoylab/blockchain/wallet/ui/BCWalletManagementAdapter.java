@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 
 import com.ajoylab.blockchain.wallet.common.BCConstants;
 import com.ajoylab.blockchain.wallet.model.BCWalletData;
+import com.ajoylab.blockchain.wallet.utils.BCBalanceUtils;
 
 /**
  * Created by liuya on 2018/1/25.

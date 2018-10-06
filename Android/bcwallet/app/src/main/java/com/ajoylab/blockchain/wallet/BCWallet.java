@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.ajoylab.blockchain.wallet.common.BCConstants;
 import com.ajoylab.blockchain.wallet.common.BCWalletImpl;
+import com.ajoylab.blockchain.wallet.model.BCWalletData;
 import com.ajoylab.blockchain.wallet.ui.BCPaymentActivity;
 
 /**
@@ -16,10 +17,10 @@ public class BCWallet
 {
     private static final String TAG = "###BCWallet";
 
-    public static void init(Activity activity)
+    public static void init(Activity activity, BCWallet.PaymentListener listener)
     {
         Log.d(TAG, "CONSTRUCTOR 111");
-        BCWalletImpl.getInstance().init(activity);
+        BCWalletImpl.getInstance().init(activity, listener);
     }
 
     public static void makePayment(String propName, String propPrice)
@@ -52,5 +53,10 @@ public class BCWallet
     public static boolean onBackPressed()
     {
         return false;
+    }
+
+    public interface PaymentListener {
+        void onPaymentSucceed(String propName);
+        void onPaymentFail(String propName);
     }
 }

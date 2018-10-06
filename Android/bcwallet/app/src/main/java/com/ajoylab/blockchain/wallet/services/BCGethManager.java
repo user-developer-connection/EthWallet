@@ -7,6 +7,8 @@ package com.ajoylab.blockchain.wallet.services;
 import android.util.Log;
 
 import com.ajoylab.blockchain.wallet.BCWallet;
+import com.ajoylab.blockchain.wallet.common.BCConstants;
+import com.ajoylab.blockchain.wallet.common.BCException;
 import com.ajoylab.blockchain.wallet.model.BCWalletData;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -108,62 +110,44 @@ public class BCGethManager
 
     public Single<BCWalletData> importKeystore(final String store, final String password, final String newPassword) {
 
-
-        /*
-        return Single.fromCallable(() -> {
-            String address = extractAddressFromStore(store);
-            if (hasAccount(address)) {
-                throw new ServiceErrorException(C.ErrorCode.ALREADY_ADDED, "Already added");
-            }
-            Account account;
-            try {
-                account = keyStore
-                        .importKey(store.getBytes(Charset.forName("UTF-8")), password, newPassword);
-            } catch (Exception ex) {
-                // We need to make sure that we do not have a broken account
-                deleteAccount(address, newPassword).subscribe(() -> {}, t -> {});
-                throw ex;
-            }
-            return new Wallet(account.getAddress().getHex().toLowerCase());
-        }).subscribeOn(Schedulers.io());
-         */
-
         Log.d(TAG, "importKeystore 111");
 
-        return Single.fromCallable(new Callable<BCWalletData>() {
-            @Override
-            public BCWalletData call() throws Exception {
-
-                Log.d(TAG, "importKeystore 222");
-
-                String address = "";
-                try {
-                    JSONObject jsonObject = new JSONObject(store);
-                    address =  "0x" + jsonObject.getString("address");
-                    Log.d(TAG, "importKeystore 333: " + address);
-                } catch (JSONException ex) {
-                    Log.d(TAG, "importKeystore 444");
-                    throw new Exception("Invalid keystore");
-                }
-
-                if (mKeyStore.hasAddress(new Address(address))) {
-                    //throw new ServiceErrorException(C.ErrorCode.ALREADY_ADDED, "Already added");
-                    Log.d(TAG, "Already Added");
-                }
-
-                Account account = null;
-                try {
-                    Log.d(TAG, "importKeystore 555 pwd: " + password + " nPWD: " + newPassword);
-                    account = mKeyStore.importKey(store.getBytes(Charset.forName("UTF-8")), password, newPassword);
-                } catch (Exception e) {
-                    //deleteAccount(address, newPassword).subscribe(() -> {}, t -> {});
-                    Log.d(TAG, "importKeystore 666");
-                    throw e;
-                }
-                Log.d(TAG, "importKeystore 777");
-                return new BCWalletData(account.getAddress().getHex().toLowerCase());
+        return Single.fromCallable(() -> {
+            String address = "";
+            try {
+                JSONObject jsonObject = new JSONObject(store);
+                address = "0x" + jsonObject.getString("address");
+                Log.d(TAG, "importKeystore 333: " + address);
+            } catch (JSONException ex) {
+                Log.d(TAG, "importKeystore 444");
+                throw new BCException(BCConstants.ERROR_CODE_WALLET_INVALID_KEYSTORE, "Invalid keystore!");
             }
+
+            if (mKeyStore.hasAddress(new Address(address))) {
+                //throw new ServiceErrorException(C.ErrorCode.ALREADY_ADDED, "Already added");
+                Log.d(TAG, "Already Added");
+                throw new BCException(BCConstants.ERROR_CODE_WALLET_ALREADY_ADDED, "Wallet Already Added!");
+            }
+
+            Account account = null;
+            try {
+                Log.d(TAG, "importKeystore 555 pwd: " + password + " nPWD: " + newPassword);
+                account = mKeyStore.importKey(store.getBytes(Charset.forName("UTF-8")), password, newPassword);
+            } catch (Exception ex) {
+                deleteAccount(address, newPassword).subscribe(() -> {}, t -> {});
+                Log.d(TAG, "importKeystore 666");
+                throw new BCException(BCConstants.ERROR_CODE_WALLET_ADDRESS_OR_PASSWORD_WRONG, ex.getMessage());
+                //throw ex;
+            }
+            Log.d(TAG, "importKeystore 777");
+            return new BCWalletData(account.getAddress().getHex().toLowerCase());
         }).subscribeOn(Schedulers.io());
+    }
+
+    public Completable deleteAccount(String address, String password) {
+        return Single.fromCallable(() -> findAccount(address))
+                .flatMapCompletable(account -> Completable.fromAction(() -> mKeyStore.deleteAccount(account, password)))
+                .subscribeOn(Schedulers.io());
     }
 
     public Single<BCWalletData> importPrivateKey(String privateKey, String newPassword) {
@@ -175,7 +159,7 @@ public class BCGethManager
         }).compose(upstream -> importKeystore(upstream.blockingGet(), newPassword, newPassword));
     }
 
-    public Single<byte[]> signTransaction(BCWalletData from,
+    public Single<byte[]> signTransaction(String fromAddress,
                                           String signerPassword,
                                           String toAddress,
                                           BigInteger amount,
@@ -185,7 +169,8 @@ public class BCGethManager
                                           byte[] data,
                                           long chainId) {
 
-        Log.d(TAG, "signTransaction 111");
+        Log.d(TAG, "signTransaction 111 from: " + fromAddress + " to: " + toAddress + " amoutInWei: " + amount.longValue() + " gasPrice: " + gasPrice.intValue() + "gasLimit: " + gasLimit.intValue() + " nonce: " + nonce + " chainID:" + chainId);
+
 
         return Single.fromCallable(() -> {
             BigInt amountBI = new BigInt(0);
@@ -200,7 +185,7 @@ public class BCGethManager
             Transaction tx = new Transaction(nonce, new Address(toAddress), amountBI, gasLimitBI, gasPriceBI, data);
 
             BigInt chain = new BigInt(chainId); // Chain identifier of the main net
-            Account account = findAccount(from.getAddress());
+            Account account = findAccount(fromAddress);
             mKeyStore.unlock(account, signerPassword);
             Transaction signed = mKeyStore.signTx(account, tx, chain);
             mKeyStore.lock(account.getAddress());
@@ -223,7 +208,7 @@ public class BCGethManager
                 /* Quietly: interest only result, maybe next is ok. */
             }
         }
-        //throw new ServiceException("Wallet with address: " + address + " not found");
-        throw new Exception();
+        String message = "Wallet with address: " + address + " not found";
+        throw new BCException(BCConstants.ERROR_CODE_WALLET_NOT_FOUND, message);
     }
 }
